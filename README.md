@@ -11,8 +11,11 @@
 ## Источники данных
 
 - Банк России, справочник валют: <https://www.cbr.ru/scripts/XML_valFull.asp>
-- Банк России, история курсов: <https://www.cbr.ru/scripts/XML_dynamic.asp>
-- World Bank Open Data API: <https://api.worldbank.org/v2/country/RUS/indicator/>
+- Банк России, XML-сервисы: <https://www.cbr.ru/development/SXML/>
+- Банк России, пример запроса истории USD/RUB: <https://www.cbr.ru/scripts/XML_dynamic.asp?date_req1=01%2F01%2F2014&date_req2=12%2F06%2F2026&VAL_NM_RQ=R01235>
+- World Bank API, инфляция РФ: <https://api.worldbank.org/v2/country/RUS/indicator/FP.CPI.TOTL.ZG?format=json&per_page=200>
+- World Bank API, рост ВВП РФ: <https://api.worldbank.org/v2/country/RUS/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=200>
+- World Bank API, официальный курс LCU/USD: <https://api.worldbank.org/v2/country/RUS/indicator/PA.NUS.FCRF?format=json&per_page=200>
 
 ## Что сделано
 
@@ -67,4 +70,3 @@ notebooks/analysis_cbr_currency_rates.ipynb
 - Дневные изменения USD/RUB и EUR/RUB имеют сильную положительную статистически значимую связь.
 - Волатильность USD/RUB в 2022-2023 годах статистически выше, чем в 2017-2019 годах.
 - Регрессионная модель частично объясняет USD/RUB через другие валюты, но высокая мультиколлинеарность ограничивает интерпретацию отдельных коэффициентов.
-

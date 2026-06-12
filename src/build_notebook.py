@@ -120,8 +120,8 @@ def build_notebook() -> nbf.NotebookNode:
             Используются три запроса:
 
             - справочник валют ЦБ РФ: `https://www.cbr.ru/scripts/XML_valFull.asp`;
-            - исторические курсы по каждой валюте: `https://www.cbr.ru/scripts/XML_dynamic.asp`;
-            - макроиндикаторы Всемирного банка: `https://api.worldbank.org/v2/country/RUS/indicator/...`.
+            - исторические курсы по каждой валюте: XML-сервис ЦБ РФ; пример запроса для USD/RUB — `https://www.cbr.ru/scripts/XML_dynamic.asp?date_req1=01%2F01%2F2014&date_req2=12%2F06%2F2026&VAL_NM_RQ=R01235`;
+            - макроиндикаторы Всемирного банка; пример запроса по инфляции РФ — `https://api.worldbank.org/v2/country/RUS/indicator/FP.CPI.TOTL.ZG?format=json&per_page=200`.
 
             Для повторной загрузки данных можно переключить `RUN_DATA_COLLECTION = True`.
             """
