@@ -1,0 +1,84 @@
+currency_id,name,eng_name,nominal,parent_code,iso_num_code,char_code
+R01010,Австралийский доллар,Australian Dollar,1,R01010,36,AUD
+R01015,Австрийский шиллинг,Austrian Shilling,1000,R01015,40,ATS
+R01020A,Азербайджанский манат,Azerbaijan Manat,1,R01020,944,AZN
+R01030,Алжирский динар,Algerian Dinar,100,R01030,12,DZD
+R01035,Фунт стерлингов,Pound Sterling,1,R01035,826,GBP
+R01040F,Ангольская новая кванза,Angolan new Kwanza,100000,R01040,24,AON
+R01060,Армянский драм,Armenian Dram,100,R01060,51,AMD
+R01080,Бахрейнский динар,Bahraini Dinar,1,R01080,48,BHD
+R01090,Белорусский рубль,Belarusian Ruble,10000,R01090,974,BYR
+R01090B,Белорусский рубль,Belarusian Ruble,1,R01090,933,BYN
+R01095,Бельгийский франк,Belgium Franc,1000,R01095,56,BEF
+R01100,Болгарский лев,Bulgarian Lev,1,R01100,975,BGN
+R01105,Боливиано,Bolivian Boliviano,1,R01105,68,BOB
+R01115,Бразильский реал,Brazilian Real,1,R01115,986,BRL
+R01135,Форинт,Forint,100,R01135,348,HUF
+R01150,Донг,Dong,10000,R01150,704,VND
+R01200,Гонконгский доллар,Hong Kong Dollar,10,R01200,344,HKD
+R01205,Греческая драхма,Greek Drachma,10000,R01205,300,GRD
+R01210,Лари,Lari,1,R01210,981,GEL
+R01215,Датская крона,Danish Krone,1,R01215,208,DKK
+R01230,Дирхам ОАЭ,UAE Dirham,1,R01230,784,AED
+R01235,Доллар США,US Dollar,1,R01235,840,USD
+R01239,Евро,Euro,1,R01239,978,EUR
+R01240,Египетский фунт,Egyptian Pound,10,R01240,818,EGP
+R01270,Индийская рупия,Indian Rupee,100,R01270,356,INR
+R01280,Рупия,Rupiah,10000,R01280,360,IDR
+R01300,Иранский риал,Iranian Rial,1000000,R01300,364,IRR
+R01305,Ирландский фунт,Irish Pound,100,R01305,372,IEP
+R01310,Исландская крона,Iceland Krona,10000,R01310,352,ISK
+R01315,Испанская песета,Spanish Peseta,10000,R01315,724,ESP
+R01325,Итальянская лира,Italian Lira,100000,R01325,380,ITL
+R01335,Тенге,Tenge,100,R01335,398,KZT
+R01350,Канадский доллар,Canadian Dollar,1,R01350,124,CAD
+R01355,Катарский риал,Qatari Rial,1,R01355,634,QAR
+R01370,Сом,Som,100,R01370,417,KGS
+R01375,Юань,Yuan Renminbi,1,R01375,156,CNY
+R01390,Кувейтский динар,Kuwaiti Dinar,10,R01390,414,KWD
+R01395,Кубинское песо,Cuban peso,10,R01395,192,CUP
+R01405,Латвийский лат,Latvian Lat,1,R01405,428,LVL
+R01420,Ливанский фунт,Lebanese Pound,100000,R01420,422,LBP
+R01435,Литовский лит,Lithuanian Lita,1,R01435,440,LTL
+R01436,Литовский талон,Lithuanian talon,1,R01435,,
+R01500,Молдавский лей,Moldovan Leu,10,R01500,498,MDL
+R01503,Тугрик,Mongolia Tugrik,1000,R01503,496,MNT
+R01510,Немецкая марка,Deutsche Mark,1,R01510,276,DEM
+R01510A,Немецкая марка,Deutsche Mark,100,R01510,280,DEM
+R01520,Найра,Nigeria Naira,1000,R01520,566,NGN
+R01523,Нидерландский гульден,Netherlands Gulden,100,R01523,528,NLG
+R01530,Новозеландский доллар,New Zealand Dollar,1,R01530,554,NZD
+R01535,Норвежская крона,Norwegian Krone,10,R01535,578,NOK
+R01540,Оманский риал,Omani Rial,1,R01540,512,OMR
+R01565,Злотый,Zloty,1,R01565,985,PLN
+R01570,Португальский эскудо,Portuguese Escudo,10000,R01570,620,PTE
+R01580,Саудовский риял,Saudi Riyal,1,R01580,682,SAR
+R01580C,Саудовский риял,Saudi Riyal,10,R01580,682,SAR
+R01585,Румынский лей,Romanian Leu,10000,R01585,642,ROL
+R01585F,Румынский лей,Romanian Leu,1,R01585,946,RON
+R01589,СДР (специальные права заимствования),SDR (Special Drawing Right),1,R01589,960,XDR
+R01625,Сингапурский доллар,Singapore Dollar,1,R01625,702,SGD
+R01665A,Суринамский доллар,Surinam Dollar,1,R01665,968,SRD
+R01670,Сомони,Somoni,10,R01670,972,TJS
+R01675,Бат,Baht,10,R01675,764,THB
+R01685,Така,Bangladesh Taka,100,R01685,50,BDT
+R01700J,Турецкая лира,Turkish Lira,10,R01700,949,TRY
+R01710,Туркменский манат,Turkmenistan Manat,10000,R01710,795,TMM
+R01710A,Новый туркменский манат,Turkmenistan New Manat,1,R01710,934,TMT
+R01717,Узбекский сум,Uzbekistan Sum,10000,R01717,860,UZS
+R01720,Гривна,Hryvnia,10,R01720,980,UAH
+R01720A,Украинский карбованец,Ukrainian Hryvnia,1,R01720,,
+R01740,Финляндская марка,Finnish Marka,100,R01740,246,FIM
+R01750,Французский франк,French Franc,1000,R01750,250,FRF
+R01760,Чешская крона,Czech Koruna,10,R01760,203,CZK
+R01770,Шведская крона,Swedish Krona,10,R01770,752,SEK
+R01775,Швейцарский франк,Swiss Franc,1,R01775,756,CHF
+R01790,ЭКЮ,ECU,1,R01790,954,XEU
+R01795,Эстонская крона,Estonian Kroon,10,R01795,233,EEK
+R01800,Эфиопский быр,Ethiopian Birr,100,R01800,230,ETB
+R01805,Югославский новый динар,Yugoslavian Dinar,1,R01804,890,YUN
+R01805F,Сербский динар,Serbian Dinar,100,R01804,941,RSD
+R01810,Рэнд,Rand,10,R01810,710,ZAR
+R01815,Вона,Won,1000,R01815,410,KRW
+R01820,Иена,Yen,100,R01820,392,JPY
+R02005,Кьят,Kyat,1000,R02005,104,MMK

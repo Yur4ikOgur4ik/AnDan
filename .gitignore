@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+*.log
+
+# Local lecture materials
+Занятие_*.ipynb
+Лекция_*.ipynb
+Теория_*.ipynb
