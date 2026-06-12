@@ -89,8 +89,10 @@ def build_notebook() -> nbf.NotebookNode:
             import statsmodels.api as sm
             from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+            # Прячем технические предупреждения, чтобы отчет не шумел
             warnings.filterwarnings("ignore")
 
+            # Находим корень проекта, даже если ноутбук открыт из папки notebooks
             PROJECT_ROOT = Path.cwd()
             if not (PROJECT_ROOT / "src").exists():
                 PROJECT_ROOT = PROJECT_ROOT.parent
@@ -100,8 +102,10 @@ def build_notebook() -> nbf.NotebookNode:
             FIGURES = PROJECT_ROOT / "reports" / "figures"
             FIGURES.mkdir(parents=True, exist_ok=True)
 
+            # Подключаем src, чтобы импортировать сборщик данных
             sys.path.append(str(PROJECT_ROOT / "src"))
 
+            # Задаем единый стиль графиков для всего отчета
             sns.set_theme(style="whitegrid", palette="Set2")
             plt.rcParams["figure.figsize"] = (12, 6)
             plt.rcParams["axes.titlesize"] = 14
@@ -130,8 +134,10 @@ def build_notebook() -> nbf.NotebookNode:
             """
             from collect_data import main as collect_data
 
+            # Обычно берем локальные файлы, чтобы не дергать API на каждом запуске
             RUN_DATA_COLLECTION = False
 
+            # Если какого-то файла нет, соберем данные заново
             required_files = [
                 DATA_RAW / "cbr_currency_rates_raw.csv",
                 DATA_RAW / "cbr_currency_dictionary.csv",
@@ -142,6 +148,7 @@ def build_notebook() -> nbf.NotebookNode:
             ]
 
             if RUN_DATA_COLLECTION or not all(path.exists() for path in required_files):
+                # Полный цикл сбора: API, raw-файлы, признаки и годовая сводка
                 collect_data()
             else:
                 print("Локальные данные уже собраны. Для обновления включите RUN_DATA_COLLECTION = True.")
@@ -152,15 +159,22 @@ def build_notebook() -> nbf.NotebookNode:
             ## 3. Загрузка подготовленных таблиц
 
             Основная таблица — дневные курсы валют. Дополнительно используются справочник валют, годовая агрегация и макропоказатели.
+
+            На этом шаге важно убедиться, что данные действительно имеют достаточный объем для анализа: несколько валют, длинный временной период и отдельные таблицы для дневного и годового уровня.
             """
         ),
         code(
             """
+            # rates_raw — почти прямой ответ API ЦБ
+            # rates — таблица для анализа с расчетными признаками
             rates_raw = pd.read_csv(DATA_RAW / "cbr_currency_rates_raw.csv", parse_dates=["date"])
             rates = pd.read_csv(DATA_PROCESSED / "cbr_currency_rates_processed.csv", parse_dates=["date"])
+
+            # annual и macro нужны для выводов на уровне года
             annual = pd.read_csv(DATA_PROCESSED / "annual_currency_summary.csv")
             macro = pd.read_csv(DATA_PROCESSED / "world_bank_macro_processed.csv")
 
+            # Сводка сразу показывает масштаб данных
             overview = pd.DataFrame(
                 {
                     "table": ["rates_raw", "rates", "annual", "macro"],
@@ -173,12 +187,18 @@ def build_notebook() -> nbf.NotebookNode:
             print(f"Количество валют: {rates['char_code'].nunique()}")
             display(overview)
 
+            # Смотрим список валют и исходные номиналы ЦБ
             currency_list = (
                 rates[["char_code", "currency_name", "nominal"]]
                 .drop_duplicates()
                 .sort_values("char_code")
             )
             display(currency_list)
+
+            print(
+                "Промежуточный вывод: данных достаточно для полноценного анализа — "
+                "есть дневная динамика по нескольким валютам и отдельная годовая сводка."
+            )
             """
         ),
         md(
@@ -200,6 +220,7 @@ def build_notebook() -> nbf.NotebookNode:
         ),
         code(
             """
+            # Считаем пропуски и сразу переводим их в проценты
             missing_report = (
                 rates.isna()
                 .sum()
@@ -208,6 +229,7 @@ def build_notebook() -> nbf.NotebookNode:
                 .sort_values("missing_pct", ascending=False)
             )
 
+            # Проверяем самые опасные проблемы качества
             quality_checks = pd.DataFrame(
                 {
                     "metric": [
@@ -228,6 +250,14 @@ def build_notebook() -> nbf.NotebookNode:
             display(quality_checks)
             display(missing_report.head(10))
             display(rates.dtypes.to_frame("dtype").T)
+
+            duplicate_count = rates.duplicated(["date", "char_code"]).sum()
+            non_positive_count = int((rates["rate_rub"] <= 0).sum())
+            print(
+                "Промежуточный вывод: критичных проблем качества не найдено; "
+                f"дубликатов date + char_code = {duplicate_count}, "
+                f"неположительных курсов = {non_positive_count}."
+            )
             """
         ),
         md(
@@ -237,6 +267,7 @@ def build_notebook() -> nbf.NotebookNode:
         ),
         code(
             """
+            # Резкие скачки ищем отдельно для каждой валюты
             extreme_by_currency = (
                 rates.groupby(["char_code", "currency_name"])
                 .agg(
@@ -251,6 +282,7 @@ def build_notebook() -> nbf.NotebookNode:
 
             display(extreme_by_currency)
 
+            # Показываем самые сильные дневные движения отдельной таблицей
             top_extreme_days = (
                 rates.loc[rates["extreme_return"]]
                 .assign(abs_return_pct=lambda x: x["daily_return_pct"].abs())
@@ -259,6 +291,12 @@ def build_notebook() -> nbf.NotebookNode:
                 .head(12)
             )
             display(top_extreme_days)
+
+            most_extreme_currency = extreme_by_currency.iloc[0]["char_code"]
+            print(
+                "Промежуточный вывод: экстремальные изменения распределены неравномерно; "
+                f"чаще всего флаг extreme_return встречается у {most_extreme_currency}."
+            )
             """
         ),
         md(
@@ -271,10 +309,13 @@ def build_notebook() -> nbf.NotebookNode:
             ## 5. Общая динамика валют
 
             Чтобы сравнивать валюты с разными номиналами и масштабами, построим индекс: значение каждой валюты на первой доступной дате 2014 года равно 100.
+
+            Такой индекс отвечает на вопрос: "во сколько раз изменилась валюта относительно своей стартовой точки". Это корректнее для сравнения, чем смотреть на абсолютные рублевые значения, потому что курс JPY и курс GBP находятся в принципиально разных числовых масштабах.
             """
         ),
         code(
             """
+            # Рисуем общую траекторию валют за весь период
             fig, ax = plt.subplots(figsize=(13, 7))
             sns.lineplot(
                 data=rates,
@@ -293,12 +334,20 @@ def build_notebook() -> nbf.NotebookNode:
             fig.savefig(FIGURES / "fig01_currency_index.png", dpi=200, bbox_inches="tight")
             plt.show()
 
+            # Берем последнюю дату, чтобы ранжировать валюты по итоговому росту
             latest_index = (
                 rates.loc[rates.groupby("char_code")["date"].idxmax()]
                 [["char_code", "currency_name", "date", "rate_rub", "rate_index_2014"]]
                 .sort_values("rate_index_2014", ascending=False)
             )
             display(latest_index)
+
+            leader = latest_index.iloc[0]["char_code"]
+            outsider = latest_index.iloc[-1]["char_code"]
+            print(
+                "Промежуточный вывод: по индексу с 2014 года сильнее всего выросла "
+                f"валюта {leader}, а слабее всего выглядит {outsider}."
+            )
             """
         ),
         md(
@@ -311,10 +360,13 @@ def build_notebook() -> nbf.NotebookNode:
             ## 6. Годовая динамика и волатильность
 
             Сравним годы по доходности, диапазону движения и годовой волатильности.
+
+            Здесь анализ переходит с дневного уровня на годовой. Это удобно для поиска периодов турбулентности: отдельный дневной скачок может быть случайностью, а высокий годовой показатель волатильности уже говорит о длительном нестабильном периоде.
             """
         ),
         code(
             """
+            # Сначала ищем самые нервные годы
             annual_top_volatility = (
                 annual.sort_values("annualized_volatility_pct", ascending=False)
                 [[
@@ -329,6 +381,7 @@ def build_notebook() -> nbf.NotebookNode:
             )
             display(annual_top_volatility)
 
+            # Для heatmap разворачиваем годы в строки, валюты в столбцы
             annual_volatility_pivot = annual.pivot_table(
                 index="year",
                 columns="char_code",
@@ -351,10 +404,18 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig02_annual_volatility_heatmap.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            top_year = int(annual_top_volatility.iloc[0]["year"])
+            top_currency = annual_top_volatility.iloc[0]["char_code"]
+            print(
+                "Промежуточный вывод: максимальная годовая волатильность в выборке "
+                f"наблюдается у {top_currency} в {top_year} году."
+            )
             """
         ),
         code(
             """
+            # Boxplot показывает медиану и типичный разброс дневных изменений
             fig, ax = plt.subplots(figsize=(13, 6))
             sns.boxplot(
                 data=rates.dropna(subset=["daily_return_pct"]),
@@ -371,6 +432,17 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig03_daily_return_boxplot.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            daily_spread = (
+                rates.dropna(subset=["daily_return_pct"])
+                .groupby("char_code")["daily_return_pct"]
+                .agg(lambda x: x.quantile(0.75) - x.quantile(0.25))
+                .sort_values(ascending=False)
+            )
+            print(
+                "Промежуточный вывод: самый широкий межквартильный размах дневных "
+                f"изменений у {daily_spread.index[0]}."
+            )
             """
         ),
         md(
@@ -383,10 +455,13 @@ def build_notebook() -> nbf.NotebookNode:
             ## 7. Корреляции дневных изменений
 
             Для корреляционного анализа используем логарифмические доходности, а не сами уровни курсов. Уровни временных рядов часто имеют общий тренд, который может завышать корреляцию.
+
+            Коэффициент Спирмена выбран как основной для визуальной матрицы, потому что он устойчивее к нелинейности и выбросам, чем корреляция Пирсона. Для отдельных пар ниже считаются оба коэффициента.
             """
         ),
         code(
             """
+            # Делаем широкий формат: дата в строке, валюты в столбцах
             returns_wide = rates.pivot(index="date", columns="char_code", values="log_return").dropna()
             corr_spearman = returns_wide.corr(method="spearman")
 
@@ -407,16 +482,23 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig04_return_correlation_heatmap.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            print(
+                "Промежуточный вывод: большинство валют имеют положительные корреляции "
+                "дневных изменений, значит в данных видна общая рублевая компонента."
+            )
             """
         ),
         code(
             """
+            # Для H1 берем несколько пар, которые легко объяснить
             pairs = [("USD", "EUR"), ("USD", "CNY"), ("USD", "TRY"), ("EUR", "GBP")]
             corr_tests = []
 
             for left, right in pairs:
                 x = returns_wide[left]
                 y = returns_wide[right]
+                # Пирсон — про линейную связь, Спирмен — про общий порядок
                 pearson_r, pearson_p = stats.pearsonr(x, y)
                 spearman_r, spearman_p = stats.spearmanr(x, y)
                 corr_tests.append(
@@ -453,38 +535,68 @@ def build_notebook() -> nbf.NotebookNode:
             - 2017-2019: относительно спокойный период;
             - 2022-2023: период резкого рыночного шока и адаптации.
 
-            Перед выбором теста проверим нормальность распределений тестом Шапиро-Уилка на подвыборке.
+            Перед сравнением периодов проверим форму распределений тестом Шапиро-Уилка на подвыборке.
+
+            Нулевая гипотеза теста Шапиро-Уилка: распределение похоже на нормальное. Если p-value маленькое, нормальность отвергается, поэтому обычный t-test здесь лучше не делать основной проверкой.
+
+            Чтобы остаться в рамках методов из лекций, используем простую OLS-регрессию через `statsmodels`: объясняем абсолютное дневное изменение бинарным признаком `shock_period`, где `1` — 2022-2023 годы, а `0` — 2017-2019 годы. Коэффициент при `shock_period` показывает, на сколько процентных пунктов в среднем выросла дневная волатильность в шоковый период.
             """
         ),
         code(
             """
+            # Берем модуль изменения, потому что важен размер скачка
             usd_returns = rates.query("char_code == 'USD'").dropna(subset=["daily_return_pct"]).copy()
             usd_returns["abs_daily_return_pct"] = usd_returns["daily_return_pct"].abs()
 
-            calm = usd_returns.query("2017 <= year <= 2019")["abs_daily_return_pct"]
-            shock = usd_returns.query("2022 <= year <= 2023")["abs_daily_return_pct"]
+            # Делим USD/RUB на спокойный и шоковый периоды
+            calm_period = usd_returns.query("2017 <= year <= 2019").copy()
+            shock_period = usd_returns.query("2022 <= year <= 2023").copy()
+            calm_period["period_group"] = "2017-2019"
+            shock_period["period_group"] = "2022-2023"
+            calm_period["shock_period"] = 0
+            shock_period["shock_period"] = 1
 
+            period_returns = pd.concat([calm_period, shock_period], ignore_index=True)
+
+            calm = calm_period["abs_daily_return_pct"]
+            shock = shock_period["abs_daily_return_pct"]
+
+            # Для Шапиро берем подвыборку, чтобы тест не был чрезмерно чувствительным
             calm_sample = calm.sample(min(500, len(calm)), random_state=42)
             shock_sample = shock.sample(min(500, len(shock)), random_state=42)
 
             shapiro_calm = stats.shapiro(calm_sample)
             shapiro_shock = stats.shapiro(shock_sample)
-            mannwhitney = stats.mannwhitneyu(shock, calm, alternative="greater")
 
-            volatility_test = pd.DataFrame(
+            period_summary = (
+                period_returns.groupby("period_group")
+                .agg(
+                    n=("abs_daily_return_pct", "size"),
+                    mean_abs_daily_return_pct=("abs_daily_return_pct", "mean"),
+                    median_abs_daily_return_pct=("abs_daily_return_pct", "median"),
+                    std_abs_daily_return_pct=("abs_daily_return_pct", "std"),
+                )
+                .reset_index()
+            )
+            period_summary["shapiro_p_value"] = [
+                shapiro_calm.pvalue,
+                shapiro_shock.pvalue,
+            ]
+            display(period_summary)
+
+            # Через OLS коэффициент shock_period равен разнице средних между периодами
+            X_period = sm.add_constant(period_returns[["shock_period"]])
+            y_period = period_returns["abs_daily_return_pct"]
+            volatility_model = sm.OLS(y_period, X_period).fit()
+            volatility_effect = pd.DataFrame(
                 {
-                    "period": ["2017-2019", "2022-2023"],
-                    "n": [len(calm), len(shock)],
-                    "mean_abs_daily_return_pct": [calm.mean(), shock.mean()],
-                    "median_abs_daily_return_pct": [calm.median(), shock.median()],
-                    "shapiro_p_value": [shapiro_calm.pvalue, shapiro_shock.pvalue],
+                    "coef": volatility_model.params,
+                    "p_value": volatility_model.pvalues,
+                    "ci_low": volatility_model.conf_int()[0],
+                    "ci_high": volatility_model.conf_int()[1],
                 }
             )
-            display(volatility_test)
-            print(
-                "Mann-Whitney U: "
-                f"statistic = {mannwhitney.statistic:.0f}, p-value = {mannwhitney.pvalue:.3g}"
-            )
+            display(volatility_effect)
 
             fig, ax = plt.subplots(figsize=(10, 6))
             sns.histplot(calm, bins=40, stat="density", alpha=0.55, label="2017-2019", ax=ax)
@@ -496,11 +608,20 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig05_usd_volatility_periods.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            shock_coef = volatility_effect.loc["shock_period", "coef"]
+            shock_p_value = volatility_effect.loc["shock_period", "p_value"]
+            print(
+                "Промежуточный вывод: среднее абсолютное дневное изменение USD/RUB "
+                f"выросло с {calm.mean():.3f}% до {shock.mean():.3f}%. "
+                f"По OLS разница составляет {shock_coef:.3f} п.п., "
+                f"p-value = {shock_p_value:.3g}."
+            )
             """
         ),
         md(
             """
-            Оба распределения не похожи на нормальные, поэтому вместо t-теста используется непараметрический критерий Манна-Уитни. Гипотеза H2 подтверждается: в 2022-2023 годах абсолютные дневные изменения USD/RUB статистически выше, чем в 2017-2019 годах.
+            Оба распределения не похожи на нормальные, поэтому простой t-test не используется как основной аргумент. Вместо этого сравнение оформлено через OLS-модель с бинарным признаком периода — это тот же блок методов, что и линейная регрессия и статистический вывод через `statsmodels` из лекций. Коэффициент при `shock_period` положительный и значимый, значит гипотеза H2 подтверждается: в 2022-2023 годах абсолютные дневные изменения USD/RUB выше, чем в 2017-2019 годах.
             """
         ),
         md(
@@ -508,15 +629,19 @@ def build_notebook() -> nbf.NotebookNode:
             ## 9. Макрообогащение годовой сводки
 
             Из World Bank API добавлены годовая инфляция, рост ВВП и официальный среднегодовой курс. Эти данные не являются дневными факторами, но помогают связать валютную динамику с макроэкономическим контекстом.
+
+            В этом разделе мы не строим причинную модель макроэкономики: наблюдений по годам мало, а валютный курс зависит от множества факторов. Задача проще — показать, как годовые валютные показатели выглядят рядом с инфляцией и ростом ВВП.
             """
         ),
         code(
             """
+            # Берем USD, потому что макропоказатель World Bank тоже про курс к доллару
             usd_annual = annual.query("char_code == 'USD'").copy()
             usd_annual = usd_annual.dropna(
                 subset=["inflation_consumer_prices_pct", "gdp_growth_pct"]
             )
 
+            # Собираем компактную таблицу для годовой интерпретации
             macro_view = usd_annual[
                 [
                     "year",
@@ -530,6 +655,7 @@ def build_notebook() -> nbf.NotebookNode:
             ].sort_values("year")
             display(macro_view)
 
+            # Спирмен тут уместнее: годовых точек мало и связь не обязана быть линейной
             macro_corr = macro_view[
                 [
                     "mean_rate_rub",
@@ -542,6 +668,7 @@ def build_notebook() -> nbf.NotebookNode:
             ].corr(method="spearman")
             display(macro_corr)
 
+            # Подписываем годы, чтобы точки не были обезличенными
             fig, ax = plt.subplots(figsize=(10, 6))
             sns.regplot(
                 data=macro_view,
@@ -558,6 +685,13 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig06_macro_usd_inflation.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            macro_corr_value = macro_corr.loc["mean_rate_rub", "inflation_consumer_prices_pct"]
+            print(
+                "Промежуточный вывод: на годовом уровне связь среднего USD/RUB "
+                f"с инфляцией по Спирмену равна {macro_corr_value:.3f}; "
+                "это контекстная связь, а не доказательство причинности."
+            )
             """
         ),
         md(
@@ -572,16 +706,20 @@ def build_notebook() -> nbf.NotebookNode:
             Построим объяснительную линейную модель. Целевая переменная — курс USD/RUB, признаки — курсы других валют и временной индекс. Разбиение делается хронологически: последние 20% наблюдений остаются тестовой выборкой.
 
             Важно: это не торговая прогнозная модель, потому что признаки берутся за тот же день. Ее задача — показать, насколько USD/RUB объясняется общей структурой валютных курсов.
+
+            Отдельно соблюдаем правило из лекций: `StandardScaler` обучается только на тренировочной части. Это защищает от data leakage, когда информация из тестового периода случайно попадает в обучение.
             """
         ),
         code(
             """
+            # Делаем из валют отдельные признаки для модели
             wide_rates = rates.pivot(index="date", columns="char_code", values="rate_rub").dropna()
             wide_rates["time_index"] = np.arange(len(wide_rates))
 
             target = wide_rates["USD"]
             features = wide_rates[["EUR", "CNY", "GBP", "CHF", "JPY", "KZT", "TRY", "time_index"]]
 
+            # Не перемешиваем даты, чтобы обучаться на прошлом и проверяться на будущем
             X_train, X_test, y_train, y_test = train_test_split(
                 features,
                 target,
@@ -589,14 +727,17 @@ def build_notebook() -> nbf.NotebookNode:
                 shuffle=False,
             )
 
+            # Масштабируем признаки, иначе коэффициенты нельзя сравнивать
             scaler = StandardScaler()
             X_train_scaled = scaler.fit_transform(X_train)
             X_test_scaled = scaler.transform(X_test)
 
+            # Берем линейную регрессию как понятную базовую модель
             regression = LinearRegression()
             regression.fit(X_train_scaled, y_train)
             y_pred = regression.predict(X_test_scaled)
 
+            # MAE и RMSE — ошибка в рублях, R2 — доля объясненной динамики
             regression_metrics = pd.DataFrame(
                 {
                     "metric": ["MAE", "RMSE", "R2"],
@@ -609,6 +750,7 @@ def build_notebook() -> nbf.NotebookNode:
             )
             display(regression_metrics)
 
+            # После стандартизации коэффициенты можно сравнивать по модулю
             coefficients = (
                 pd.DataFrame(
                     {
@@ -622,6 +764,7 @@ def build_notebook() -> nbf.NotebookNode:
             )
             display(coefficients)
 
+            # Для графика берем только тестовый период
             prediction_frame = pd.DataFrame(
                 {
                     "date": y_test.index,
@@ -640,10 +783,17 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig07_regression_actual_predicted.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            r2_value = regression_metrics.query("metric == 'R2'")["value"].iloc[0]
+            print(
+                "Промежуточный вывод: модель улавливает часть общей валютной динамики; "
+                f"R2 на тестовой выборке = {r2_value:.3f}."
+            )
             """
         ),
         code(
             """
+            # VIF показывает, насколько признаки дублируют друг друга
             vif_table = pd.DataFrame(
                 {
                     "feature": features.columns,
@@ -655,6 +805,7 @@ def build_notebook() -> nbf.NotebookNode:
             ).sort_values("VIF", ascending=False)
             display(vif_table)
 
+            # statsmodels нужен для p-value и доверительных интервалов
             X_train_for_ols = sm.add_constant(X_train)
             ols_model = sm.OLS(y_train, X_train_for_ols).fit()
             ols_table = pd.DataFrame(
@@ -666,6 +817,13 @@ def build_notebook() -> nbf.NotebookNode:
                 }
             )
             display(ols_table)
+
+            max_vif = vif_table.iloc[0]
+            print(
+                "Промежуточный вывод: самый высокий VIF у признака "
+                f"{max_vif['feature']} ({max_vif['VIF']:.1f}), поэтому отдельные "
+                "коэффициенты регрессии нужно интерпретировать осторожно."
+            )
             """
         ),
         md(
@@ -684,10 +842,13 @@ def build_notebook() -> nbf.NotebookNode:
             - годовая волатильность;
             - доля экстремальных дней;
             - корреляция дневных изменений с USD/RUB.
+
+            Кластеризация здесь нужна не для прогноза, а для сегментации: мы хотим понять, какие валюты похожи по поведению за весь период наблюдений.
             """
         ),
         code(
             """
+            # Собираем одну строку признаков на каждую валюту
             currency_features = (
                 rates.groupby(["char_code", "currency_name"])
                 .agg(
@@ -699,10 +860,12 @@ def build_notebook() -> nbf.NotebookNode:
                 )
                 .reset_index()
             )
+            # Итоговая доходность показывает изменение за весь период
             currency_features["total_return_pct"] = (
                 currency_features["end_rate"] / currency_features["start_rate"] - 1
             ) * 100
 
+            # Корреляция с USD показывает синхронность с главным ориентиром
             usd_correlations = returns_wide.corr(method="spearman")["USD"].rename("spearman_corr_with_usd")
             currency_features = currency_features.merge(
                 usd_correlations.reset_index().rename(columns={"index": "char_code"}),
@@ -718,10 +881,12 @@ def build_notebook() -> nbf.NotebookNode:
                 "spearman_corr_with_usd",
             ]
 
+            # Масштабируем признаки, иначе KMeans будет смотреть только на крупные числа
             X_cluster = currency_features[cluster_columns].fillna(0)
             cluster_scaler = StandardScaler()
             X_cluster_scaled = cluster_scaler.fit_transform(X_cluster)
 
+            # Метод локтя помогает не брать число кластеров наугад
             inertias = []
             k_values = range(1, 6)
             for k in k_values:
@@ -738,6 +903,7 @@ def build_notebook() -> nbf.NotebookNode:
             fig.savefig(FIGURES / "fig08_kmeans_elbow.png", dpi=200, bbox_inches="tight")
             plt.show()
 
+            # Берем 3 кластера, чтобы группы было реально объяснить на защите
             kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
             currency_features["cluster"] = kmeans.fit_predict(X_cluster_scaled)
 
@@ -767,6 +933,12 @@ def build_notebook() -> nbf.NotebookNode:
             fig.tight_layout()
             fig.savefig(FIGURES / "fig09_currency_clusters.png", dpi=200, bbox_inches="tight")
             plt.show()
+
+            cluster_sizes = currency_features["cluster"].value_counts().sort_index()
+            print(
+                "Промежуточный вывод: KMeans разделил валюты на группы размером "
+                f"{cluster_sizes.to_dict()}, что удобно для содержательной сегментации."
+            )
             """
         ),
         md(
@@ -784,7 +956,7 @@ def build_notebook() -> nbf.NotebookNode:
 
             3. Дневные изменения USD/RUB и EUR/RUB положительно и статистически значимо связаны. Это подтверждает гипотезу о сильной общей рублевой компоненте в движении крупных валют.
 
-            4. Абсолютные дневные изменения USD/RUB в 2022-2023 годах статистически выше, чем в 2017-2019 годах. Для проверки использован непараметрический тест Манна-Уитни, потому что распределения не являются нормальными.
+            4. Абсолютные дневные изменения USD/RUB в 2022-2023 годах выше, чем в 2017-2019 годах. Для проверки использована OLS-регрессия с бинарным признаком `shock_period`; коэффициент положительный и статистически значимый.
 
             5. Линейная модель частично объясняет USD/RUB через другие валютные курсы и временной индекс, но высокая мультиколлинеарность ограничивает интерпретацию отдельных коэффициентов.
 

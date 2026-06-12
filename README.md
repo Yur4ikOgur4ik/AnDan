@@ -42,22 +42,37 @@
 ├── src/
 │   ├── collect_data.py              # сбор и подготовка данных
 │   └── build_notebook.py            # генератор ноутбука
+├── CHECKLIST.md                     # сверка проекта с критериями
+├── run_notebook.ps1                 # быстрый запуск на Windows
 ├── README.md
 └── requirements.txt
 ```
 
 ## Как запустить
 
-```bash
-python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.txt
-.venv/Scripts/python src/collect_data.py
+### Быстрый запуск на Windows
+
+Откройте PowerShell в папке проекта и выполните:
+
+```powershell
+.\run_notebook.ps1
 ```
 
-После этого откройте ноутбук:
+Скрипт создаст `.venv`, установит зависимости, зарегистрирует kernel `Python (Moneto4ka CBR)` и откроет Jupyter Notebook.
 
-```text
-notebooks/analysis_cbr_currency_rates.ipynb
+### Ручной запуск
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m ipykernel install --user --name moneto4ka-cbr --display-name "Python (Moneto4ka CBR)"
+.\.venv\Scripts\python.exe -m notebook notebooks\analysis_cbr_currency_rates.ipynb
+```
+
+Если нужно заново собрать данные из API:
+
+```powershell
+.\.venv\Scripts\python.exe src\collect_data.py
 ```
 
 В ноутбуке флаг `RUN_DATA_COLLECTION = False` оставлен для быстрого запуска с уже сохраненными данными. Если нужно обновить данные из API, поменяйте его на `True`.

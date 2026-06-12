@@ -46,6 +46,7 @@ def ensure_dirs() -> None:
 
 
 def fetch_url(url: str, params: dict[str, str] | None = None) -> requests.Response:
+    # Представляемся обычным клиентом, чтобы API спокойнее принимали запрос
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; HSE-data-analysis-project/1.0)"
     }
@@ -59,6 +60,7 @@ def parse_cbr_date(value: str) -> pd.Timestamp:
 
 
 def parse_cbr_float(value: str) -> float:
+    # ЦБ отдает числа с запятой, Python ждет точку
     return float(value.replace(",", "."))
 
 
@@ -72,6 +74,7 @@ def load_currency_dictionary() -> pd.DataFrame:
 
     rows = []
     for item in root.findall("Item"):
+        # Забираем внутренний ID валюты, без него историю курса не запросить
         rows.append(
             {
                 "currency_id": item.attrib["ID"].strip(),
@@ -96,7 +99,7 @@ def select_currency_meta(dictionary: pd.DataFrame, codes: Iterable[str]) -> list
         if candidates.empty:
             raise ValueError(f"Currency code {code} was not found in CBR dictionary")
 
-        # For the selected modern currencies the first current CBR record is enough.
+        # Для этих валют берем первую актуальную запись из справочника
         row = candidates.iloc[0]
         selected.append(
             CurrencyMeta(
@@ -110,6 +113,7 @@ def select_currency_meta(dictionary: pd.DataFrame, codes: Iterable[str]) -> list
 
 
 def load_currency_series(meta: CurrencyMeta) -> pd.DataFrame:
+    # История курса запрашивается только с датами и внутренним кодом валюты
     params = {
         "date_req1": format_cbr_date(START_DATE),
         "date_req2": format_cbr_date(END_DATE),
@@ -130,6 +134,7 @@ def load_currency_series(meta: CurrencyMeta) -> pd.DataFrame:
                 "currency_name": meta.name,
                 "nominal": nominal,
                 "value_rub_per_nominal": value_for_nominal,
+                # Приводим курс к одной единице валюты
                 "rate_rub": value_for_nominal / nominal,
             }
         )
@@ -141,6 +146,7 @@ def load_currency_series(meta: CurrencyMeta) -> pd.DataFrame:
 
 
 def load_world_bank_indicator(indicator: str, output_name: str) -> pd.DataFrame:
+    # Просим JSON, чтобы не разбирать еще один XML
     params = {"format": "json", "per_page": "200"}
     response = fetch_url(WORLD_BANK_URL.format(indicator=indicator), params=params)
     payload = response.json()
@@ -163,6 +169,7 @@ def load_world_bank_indicator(indicator: str, output_name: str) -> pd.DataFrame:
 
 
 def load_world_bank_macro() -> tuple[pd.DataFrame, pd.DataFrame]:
+    # Сначала сохраняем длинный формат, так проще проверить сырой ответ
     frames = [
         load_world_bank_indicator(indicator, output_name)
         for indicator, output_name in WORLD_BANK_INDICATORS.items()
@@ -170,6 +177,7 @@ def load_world_bank_macro() -> tuple[pd.DataFrame, pd.DataFrame]:
     macro_long = pd.concat(frames, ignore_index=True)
     macro_long.to_csv(RAW_DIR / "world_bank_macro_raw.csv", index=False)
 
+    # Для анализа разворачиваем макропоказатели в отдельные столбцы
     macro_wide = (
         macro_long.pivot_table(index="year", columns="metric", values="value", aggfunc="first")
         .reset_index()
@@ -196,6 +204,7 @@ def add_period(year: int) -> str:
 
 
 def mark_extreme_returns(group: pd.DataFrame) -> pd.Series:
+    # Ищем резкие скачки отдельно для каждой валюты
     returns = group["log_return"].dropna()
     if returns.empty or math.isclose(float(returns.std(ddof=0)), 0.0):
         return pd.Series(False, index=group.index)
@@ -209,16 +218,19 @@ def mark_extreme_returns(group: pd.DataFrame) -> pd.Series:
 def build_processed_rates(raw_rates: pd.DataFrame) -> pd.DataFrame:
     data = raw_rates.copy()
     data["date"] = pd.to_datetime(data["date"])
+    # Одна валюта должна иметь только один курс на дату
     data = data.drop_duplicates(subset=["date", "char_code"]).sort_values(
         ["char_code", "date"]
     )
 
+    # Добавляем признаки времени для группировок
     data["year"] = data["date"].dt.year
     data["month"] = data["date"].dt.month
     data["quarter"] = data["date"].dt.quarter
     data["period"] = data["year"].map(add_period)
 
     grouped = data.groupby("char_code", group_keys=False)
+    # Считаем изменения внутри валюты, не смешивая разные ряды
     data["previous_rate_rub"] = grouped["rate_rub"].shift(1)
     data["rate_change_rub"] = data["rate_rub"] - data["previous_rate_rub"]
     data["daily_return_pct"] = grouped["rate_rub"].pct_change() * 100
@@ -228,6 +240,7 @@ def build_processed_rates(raw_rates: pd.DataFrame) -> pd.DataFrame:
     data["rolling_mean_30"] = grouped["rate_rub"].transform(
         lambda x: x.rolling(30, min_periods=10).mean()
     )
+    # Переводим дневную волатильность в годовую через sqrt(252)
     data["rolling_volatility_30"] = grouped["log_return"].transform(
         lambda x: x.rolling(30, min_periods=10).std() * np.sqrt(252) * 100
     )
@@ -241,6 +254,7 @@ def build_processed_rates(raw_rates: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_annual_summary(processed_rates: pd.DataFrame, macro: pd.DataFrame) -> pd.DataFrame:
+    # Собираем годовой уровень для сравнения периодов
     annual = (
         processed_rates.groupby(["char_code", "currency_name", "year"])
         .agg(
@@ -269,6 +283,7 @@ def build_annual_summary(processed_rates: pd.DataFrame, macro: pd.DataFrame) -> 
         annual["max_rate_rub"] / annual["min_rate_rub"] - 1
     ) * 100
 
+    # Добавляем макроиндикаторы к каждому году
     annual = annual.merge(macro, on="year", how="left")
     annual.to_csv(PROCESSED_DIR / "annual_currency_summary.csv", index=False)
     return annual
