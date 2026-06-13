@@ -17,6 +17,8 @@
 - World Bank API, рост ВВП РФ: <https://api.worldbank.org/v2/country/RUS/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=200>
 - World Bank API, официальный курс LCU/USD: <https://api.worldbank.org/v2/country/RUS/indicator/PA.NUS.FCRF?format=json&per_page=200>
 
+В `src/collect_data.py` технические адреса с названием `*_ENDPOINT` используются только как API-endpoint'ы. Их не нужно открывать без параметров: полный рабочий запрос собирается в коде из endpoint'а и параметров.
+
 ## Что сделано
 
 - Автоматический сбор данных из API ЦБ РФ и World Bank.

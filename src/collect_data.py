@@ -17,8 +17,16 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 
 CBR_CURRENCY_DICT_URL = "https://www.cbr.ru/scripts/XML_valFull.asp"
-CBR_DYNAMIC_URL = "https://www.cbr.ru/scripts/XML_dynamic.asp"
-WORLD_BANK_URL = "https://api.worldbank.org/v2/country/RUS/indicator/{indicator}"
+CBR_DYNAMIC_ENDPOINT = "https://www.cbr.ru/scripts/XML_dynamic.asp"
+CBR_DYNAMIC_EXAMPLE_URL = (
+    "https://www.cbr.ru/scripts/XML_dynamic.asp"
+    "?date_req1=01/01/2014&date_req2=12/06/2026&VAL_NM_RQ=R01235"
+)
+WORLD_BANK_ENDPOINT = "https://api.worldbank.org/v2/country/RUS/indicator/{indicator}"
+WORLD_BANK_EXAMPLE_URL = (
+    "https://api.worldbank.org/v2/country/RUS/indicator/FP.CPI.TOTL.ZG"
+    "?format=json&per_page=200"
+)
 
 START_DATE = date(2014, 1, 1)
 END_DATE = date(2026, 6, 12)
@@ -119,7 +127,7 @@ def load_currency_series(meta: CurrencyMeta) -> pd.DataFrame:
         "date_req2": format_cbr_date(END_DATE),
         "VAL_NM_RQ": meta.currency_id,
     }
-    response = fetch_url(CBR_DYNAMIC_URL, params=params)
+    response = fetch_url(CBR_DYNAMIC_ENDPOINT, params=params)
     root = ET.fromstring(response.content)
 
     rows = []
@@ -148,7 +156,7 @@ def load_currency_series(meta: CurrencyMeta) -> pd.DataFrame:
 def load_world_bank_indicator(indicator: str, output_name: str) -> pd.DataFrame:
     # Просим JSON, чтобы не разбирать еще один XML
     params = {"format": "json", "per_page": "200"}
-    response = fetch_url(WORLD_BANK_URL.format(indicator=indicator), params=params)
+    response = fetch_url(WORLD_BANK_ENDPOINT.format(indicator=indicator), params=params)
     payload = response.json()
     records = payload[1] if isinstance(payload, list) and len(payload) > 1 else []
 
