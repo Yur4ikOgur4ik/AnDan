@@ -63,6 +63,18 @@
 
 Скрипт создаст `.venv`, установит зависимости, зарегистрирует kernel `Python (Moneto4ka CBR)` и откроет Jupyter Notebook.
 
+Если PowerShell пишет, что выполнение сценариев отключено, используйте один из вариантов:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run_notebook.ps1
+```
+
+или запустите:
+
+```powershell
+.\run_notebook.bat
+```
+
 ### Ручной запуск
 
 ```powershell
